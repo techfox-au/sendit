@@ -1,0 +1,2370 @@
+/* Sendit! UI — dark Material admin (Fuse-inspired, original CSS).
+   Centered auth card; elevated toolbar; paper-like dark surfaces. */
+
+:root {
+  /* Dark surfaces */
+  --bg: #121212;
+  --surface: #1e1e1e;
+  --surface2: #2a2a2a;
+  --surface-elevated: #252525;
+
+  /* Text on dark */
+  --text: rgba(255, 255, 255, 0.87);
+  --heading: #ffffff;
+  --muted: rgba(255, 255, 255, 0.6);
+  --muted-strong: rgba(255, 255, 255, 0.7);
+  --hint: rgba(255, 255, 255, 0.38);
+
+  /* Primary / highlight — gold (overridden by /api/v1/branding/theme.css) */
+  --primary: #c8ab37;
+  --primary-dark: #a8902c;
+  --primary-light: #dfc45a;
+  --primary-soft: rgba(200, 171, 55, 0.14);
+  --accent: #c8ab37;
+  --accent-hover: #dfc45a;
+  --accent-active: #a8902c;
+  /* Comma-separated RGB for rgba(var(--accent-rgb), a) — matches default gold */
+  --accent-rgb: 200, 171, 55;
+
+  --danger: #ef5350;
+  --danger-soft: rgba(239, 83, 80, 0.14);
+  --danger-text: #ef9a9a;
+  --ok: #66bb6a;
+  --ok-soft: rgba(102, 187, 106, 0.14);
+  --ok-text: #a5d6a7;
+  --warn-soft: rgba(255, 167, 38, 0.14);
+  --warn-text: #ffcc80;
+  --info-soft: rgba(200, 171, 55, 0.12);
+
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --divider: rgba(255, 255, 255, 0.08);
+
+  --header-bg: #1e1e1e;
+  --header-h: 64px;
+
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.35);
+  --shadow-3: 0 12px 28px rgba(0, 0, 0, 0.5);
+
+  --font: Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: "Roboto Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --fs: 14px;
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  /* Force dark UA chrome (scrollbars, form controls); ignore OS light preference */
+  color-scheme: only dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Focus / scrollIntoView / anchor jumps clear the fixed header */
+  scroll-padding-top: calc(var(--header-h) + 16px);
+}
+
+/* Page headings (e.g. "Link ready") — same clearance as .alert for native scroll */
+.wrap > h1,
+#page-title {
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs);
+  line-height: 1.5;
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  color-scheme: only dark;
+}
+
+/*
+ * Mobile / touch: hide scrollbars (page still scrolls via touch/swipe).
+ * Covers document + nested overflow areas (nav menu, textareas, lists).
+ */
+@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+  html {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* legacy Edge */
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+/* Keep native controls dark even if a browser ignores color-scheme on html */
+input,
+select,
+textarea,
+button {
+  color-scheme: only dark;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+
+/* —— App content shell —— */
+.wrap {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: calc(var(--header-h) + 24px) 24px 48px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  overflow-x: clip;
+}
+
+.wrap.wrap-wide {
+  max-width: 1140px;
+}
+
+/* —— Top toolbar —— */
+/* Same-origin multi-page navigations: keep the toolbar continuous across clicks.
+   Skipped transitions reject with AbortError; every page injects an early head
+   guard (see scripts/build-frontend.py) so DevTools stays quiet. */
+@view-transition {
+  navigation: auto;
+}
+
+header.app {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1020;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px 0 20px;
+  margin: 0;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--divider);
+  box-shadow: var(--shadow-1);
+  /* Pair old/new headers across document navigations (Chromium / Safari 18+). */
+  view-transition-name: sendit-header;
+}
+
+/* Content can crossfade; keep the fixed header stable. */
+::view-transition-group(sendit-header) {
+  animation-duration: 0.01ms;
+  animation-timing-function: step-end;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.12s;
+}
+
+header.app .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+  color: var(--primary);
+  text-decoration: none;
+  text-transform: none;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+/* Guest: logo is not a navigation control (no dashboard/login redirect). */
+header.app a.brand.brand-inert {
+  cursor: default;
+  pointer-events: auto;
+}
+
+header.app .brand .brand-logo {
+  display: block;
+  height: 36px;
+  width: auto;
+  max-width: 160px;
+  min-width: 72px; /* reserve space while logo.svg loads from cache/network */
+  object-fit: contain;
+}
+
+nav.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+nav.links > a {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 12px;
+  border-radius: var(--radius);
+  transition: color var(--transition), background var(--transition);
+}
+
+/* Settings: gear on desktop, text label in mobile menu */
+nav.links > a.nav-settings-link {
+  padding: 8px 10px;
+  text-transform: none;
+  letter-spacing: 0;
+  gap: 0;
+}
+
+nav.links > a.nav-settings-link .nav-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Visually hide "Settings" text on desktop (aria-label still present). */
+nav.links > a.nav-settings-link .nav-settings-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+nav.links [data-nav-email] {
+  color: var(--primary);
+  font-size: 13px;
+  padding: 6px 12px;
+  margin-left: 4px;
+  border-left: 1px solid var(--border);
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+button.nav-logout,
+.nav-logout {
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-left: 4px;
+  box-sizing: border-box;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  line-height: 1 !important;
+  /* secondary already has 1px border from global button rules */
+}
+
+/* Hamburger: desktop hidden; mobile shows (see max-width media query).
+   Fill + border match text field inputs; bars/X are white (currentColor).
+   Must override global button height/max-height (36px) or it becomes a flat rectangle. */
+.nav-menu-toggle,
+button.nav-menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  max-width: 44px !important;
+  max-height: 44px !important;
+  margin: 0;
+  padding: 0 !important;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+  box-shadow: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-weight: 500 !important;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-menu-toggle:active,
+.nav-menu-toggle.is-pressed {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  transform: scale(0.96);
+}
+
+/* Never pick up primary (yellow) button:disabled styles if this is disabled. */
+button.nav-menu-toggle:disabled,
+button.nav-menu-toggle:disabled:active,
+button.nav-menu-toggle:disabled.is-pressed,
+.nav-menu-toggle:disabled,
+.nav-menu-toggle:disabled:active,
+.nav-menu-toggle:disabled.is-pressed {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Three equal thin bars: 1.5px thick, equal gaps (absolute so flex cannot crush). */
+.nav-menu-bars {
+  --nav-bar-thick: 1.5px;
+  --nav-bar-gap: 4.5px;
+  position: relative;
+  display: block;
+  width: 18px;
+  /* 1.5 + 4.5 + 1.5 + 4.5 + 1.5 = 13.5 */
+  height: calc(3 * var(--nav-bar-thick) + 2 * var(--nav-bar-gap));
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.nav-menu-bars > span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: block;
+  height: var(--nav-bar-thick);
+  min-height: var(--nav-bar-thick);
+  max-height: var(--nav-bar-thick);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: currentColor;
+  box-sizing: border-box;
+  transform-origin: center center;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transition:
+    top 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.nav-menu-bars > span:nth-child(1) {
+  top: 0;
+}
+.nav-menu-bars > span:nth-child(2) {
+  top: calc(var(--nav-bar-thick) + var(--nav-bar-gap));
+}
+.nav-menu-bars > span:nth-child(3) {
+  top: calc(2 * (var(--nav-bar-thick) + var(--nav-bar-gap)));
+}
+
+/*
+ * X uses the same bar thickness. Mild scaleY offsets diagonal AA so the open
+ * icon reads the same weight as the closed ☰ (not heavier, not hairline).
+ */
+body.nav-menu-open .nav-menu-bars > span:nth-child(1) {
+  top: calc(var(--nav-bar-thick) + var(--nav-bar-gap));
+  transform: rotate(45deg) scaleY(1.2);
+}
+body.nav-menu-open .nav-menu-bars > span:nth-child(2) {
+  opacity: 0;
+}
+body.nav-menu-open .nav-menu-bars > span:nth-child(3) {
+  top: calc(var(--nav-bar-thick) + var(--nav-bar-gap));
+  transform: rotate(-45deg) scaleY(1.2);
+}
+
+/* Dim page when mobile menu is open */
+.nav-menu-backdrop {
+  display: none;
+}
+
+/* —— Typography —— */
+h1 {
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--heading);
+  margin: 0 0 8px;
+  line-height: 1.3;
+  text-transform: none;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--heading);
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--divider);
+  text-transform: none;
+}
+
+p.lead {
+  color: var(--muted);
+  margin: 0 0 20px;
+  font-size: 14px;
+  max-width: 42rem;
+}
+
+/* —— Cards —— */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin: 0 0 16px;
+  box-shadow: var(--shadow-1);
+}
+
+.card > h2:first-child {
+  margin-top: 0;
+}
+
+.card p:last-child {
+  margin-bottom: 0;
+}
+
+/* —— Forms —— */
+label,
+.field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: none;
+}
+
+/* Required-field marker (highlight colour) */
+label .req,
+.field-label .req,
+legend .req {
+  color: var(--primary);
+  font-weight: 600;
+  margin-left: 0.2em;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+select,
+textarea {
+  /* Block so compact fields (e.g. OTP max-width) still force the next control onto a new line */
+  display: block;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 12px 14px;
+  font: inherit;
+  /* ≥16px prevents iOS Safari auto-zoom on focus */
+  font-size: 16px;
+  margin-bottom: 18px;
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+
+/* Extra right padding so the chevron is not flush against the edge */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.75rem;
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239e9e9e' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 12px 8px;
+  cursor: pointer;
+}
+
+/*
+ * Native <option> lists often use a light system popup on Windows while the
+ * closed <select> keeps light text (var(--text)). Force dark option surfaces
+ * so unselected rows stay readable. Support varies by browser/OS.
+ */
+select option {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+select option:checked,
+select option:hover {
+  background-color: var(--surface2);
+  color: var(--heading);
+}
+
+/* Text/select only — no square focus ring around radios/checkboxes */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23c8ab37' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 12px 8px;
+  padding-right: 2.75rem;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--hint);
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 16px; /* keep ≥16px — iOS zooms focused fields under 16px */
+  line-height: 1.45;
+  border-radius: var(--radius-lg);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.row > * {
+  flex: 1 1 180px;
+}
+
+/* —— Buttons ——
+ * Primary, secondary, and danger share the same outer box (36px + 1px border)
+ * so side-by-side pairs match. Primary/danger use a transparent border; secondary
+ * only changes border-color.
+ */
+button,
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  background: var(--primary);
+  color: #0a0a0a;
+  /* 1px always — colour changes per variant (see .secondary / .danger) */
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  /* Reduce 300ms tap delay / double-tap zoom quirks on iOS */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0 16px;
+  min-height: 36px;
+  height: 36px;
+  max-height: 36px;
+  line-height: 1;
+  font: inherit;
+  font-size: 13px;
+  /* 600 matches secondary’s optical weight (light-on-dark reads heavier at 500) */
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: var(--shadow-1);
+  transition: background var(--transition), box-shadow var(--transition), transform 0.1s ease,
+    border-color var(--transition), color var(--transition);
+}
+
+/*
+ * Solid primary fill: pure black + 700 so label matches the strength of
+ * secondary’s light grey on dark (dark-on-highlight looks thinner at equal weight).
+ */
+button:not(.secondary):not(.danger):not(.nav-menu-toggle):not(.nav-logout),
+.btn:not(.secondary):not(.danger) {
+  color: #000000;
+  font-weight: 700;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button:not(.secondary):not(.danger):not(.nav-menu-toggle) > .btn-label,
+.btn:not(.secondary):not(.danger) > .btn-label {
+  color: inherit;
+  font-weight: inherit;
+  -webkit-text-fill-color: currentColor;
+}
+
+button:active,
+.btn:active {
+  background: var(--accent-active);
+  color: #fff;
+  box-shadow: var(--shadow-1);
+  transform: translateY(1px);
+}
+
+/* Kill UA blue focus ring; show themed ring only for keyboard :focus-visible */
+button:focus,
+.btn:focus {
+  outline: none;
+}
+button:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+button.secondary,
+.btn.secondary {
+  background: transparent;
+  color: var(--muted-strong);
+  border-color: var(--border-strong);
+  box-shadow: none;
+  /* Same 36px box as primary — only border colour differs */
+  font-weight: 600;
+}
+
+button.danger,
+.btn.danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--shadow-1);
+}
+
+button.btn-block,
+.btn.btn-block {
+  width: 100%;
+  height: auto;
+  min-height: 40px;
+  /* Extra space after last field (e.g. password → Sign in) */
+  margin-top: 1.25rem;
+}
+
+button:disabled,
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  pointer-events: none;
+}
+
+/* Desktop: busy primary matches :disabled look (opacity). */
+button.ui-busy,
+.btn.ui-busy {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  pointer-events: none;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Locked links during PoW / busy work (see SenditApp.lockInteractive) */
+a.ui-locked,
+a[aria-disabled="true"].ui-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/*
+ * Touch / coarse pointer only — do not change desktop (hover: fine) chrome.
+ * - .is-pressed mirrors :active (iOS often skips :active)
+ * - primary .ui-busy still dims gold via opacity 0.45 like desktop :disabled
+ *   (class instead of disabled= so iOS does not force light-grey system text)
+ */
+@media (hover: none), (pointer: coarse) {
+  button.is-pressed,
+  .btn.is-pressed {
+    background: var(--accent-active);
+    color: #fff;
+    box-shadow: var(--shadow-1);
+    transform: translateY(1px);
+  }
+
+  /* Same visual as desktop disabled: darker yellow (opacity), dark label.
+     button (Reveal secret) and a.btn (New send) share .ui-busy on touch. */
+  button.ui-busy:not(.secondary):not(.danger):not(.nav-menu-toggle),
+  .btn.ui-busy:not(.secondary):not(.danger):not(.nav-menu-toggle),
+  a.btn.ui-busy:not(.secondary):not(.danger),
+  button.ui-busy:not(.secondary):not(.danger):not(.nav-menu-toggle).is-pressed,
+  .btn.ui-busy:not(.secondary):not(.danger):not(.nav-menu-toggle).is-pressed,
+  a.btn.ui-busy:not(.secondary):not(.danger).is-pressed {
+    opacity: 0.45;
+    background: var(--primary) !important;
+    color: #0a0a0a !important;
+    -webkit-text-fill-color: #0a0a0a !important;
+    box-shadow: none;
+    transform: none;
+    pointer-events: none;
+    cursor: not-allowed;
+    text-decoration: none;
+  }
+
+  button.ui-busy:not(.secondary):not(.danger) > .btn-label,
+  .btn.ui-busy:not(.secondary):not(.danger) > .btn-label,
+  a.btn.ui-busy:not(.secondary):not(.danger) > .btn-label {
+    color: #0a0a0a !important;
+    -webkit-text-fill-color: #0a0a0a !important;
+  }
+
+  /* Fallback if an older path still sets ui-locked without ui-busy */
+  a.btn.ui-locked:not(.secondary):not(.danger),
+  a.btn[aria-disabled="true"].ui-locked:not(.secondary):not(.danger) {
+    opacity: 0.45;
+    background: var(--primary) !important;
+    color: #0a0a0a !important;
+    -webkit-text-fill-color: #0a0a0a !important;
+    box-shadow: none;
+    text-decoration: none;
+  }
+}
+
+/*
+ * Hover styles only when the device can truly hover (mouse / trackpad).
+ * On touch / coarse pointers, :hover sticks after tap and looks broken —
+ * so mobile/tablet never get these rules. :active / :focus still apply.
+ */
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    color: var(--accent-hover);
+    text-decoration: none;
+  }
+
+  header.app .brand:hover {
+    color: var(--accent-hover);
+    opacity: 0.92;
+    text-decoration: none;
+  }
+
+  header.app a.brand.brand-inert:hover {
+    color: var(--primary);
+    opacity: 1;
+  }
+
+  nav.links > a:hover {
+    color: var(--primary);
+    background: var(--primary-soft);
+    text-decoration: none;
+  }
+
+  .nav-menu-toggle:hover {
+    /* Match text-field input:hover fill/border; keep white bars/X */
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    box-shadow: none;
+    transform: none;
+  }
+
+  input[type="text"]:hover,
+  input[type="email"]:hover,
+  input[type="password"]:hover,
+  input[type="number"]:hover,
+  select:hover,
+  textarea:hover {
+    background-color: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+
+  select:hover {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23bdbdbd' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 12px 8px;
+  }
+
+  button:hover,
+  .btn:hover {
+    background: var(--accent-hover);
+    color: #0a0a0a;
+    text-decoration: none;
+    box-shadow: var(--shadow-2);
+  }
+
+  button.secondary:hover,
+  .btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: var(--heading);
+    box-shadow: none;
+  }
+
+  button.danger:hover,
+  .btn.danger:hover {
+    background: #e53935;
+    color: #fff;
+  }
+
+  label.file-picker-btn:hover {
+    background: var(--accent-hover);
+    color: #0a0a0a;
+    text-decoration: none;
+    box-shadow: var(--shadow-2);
+  }
+}
+
+/* —— Alerts (soft fill only — no thick accent bar) —— */
+.alert {
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.45;
+  border: 1px solid transparent;
+  /* Fallback for native scrollIntoView; setAlert also measures header.app bottom */
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+.alert.error {
+  background: var(--danger-soft);
+  border-color: rgba(239, 83, 80, 0.28);
+  color: var(--danger-text);
+}
+.alert.warn {
+  background: var(--warn-soft);
+  border-color: rgba(255, 167, 38, 0.28);
+  color: var(--warn-text);
+}
+.alert.ok {
+  background: var(--ok-soft);
+  border-color: rgba(102, 187, 106, 0.28);
+  color: var(--ok-text);
+}
+.alert.info {
+  background: var(--info-soft);
+  border-color: rgba(var(--accent-rgb), 0.28);
+  color: var(--primary-light);
+}
+
+/* Space between "Copy upload link" and "Collect link" heading on collect result */
+#result > button#copy-upload {
+  display: inline-flex;
+  margin-bottom: 1.5rem;
+}
+
+#result > h2 {
+  margin-top: 0;
+}
+
+#result > h2 + .mono {
+  margin-top: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 13px;
+  word-break: break-all;
+}
+
+
+/* —— Dashboard card list (mobile-first, no horizontal scroll) —— */
+.dash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.dash-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.dash-item {
+  margin: 0;
+  padding: 16px;
+  width: 100%;
+  max-width: 100%;
+  /* Allow long titles to wrap fully inside the card (do not clip against tags). */
+  overflow: visible;
+  box-sizing: border-box;
+  /* Audit → dashboard ?focus= scrolls this edge clear of the fixed header */
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+.dash-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+
+.dash-item-title {
+  font-size: 15px;
+  font-weight: 700;
+  /* Optional item label — accent so it stands out from meta */
+  color: var(--primary);
+  /* Prefer wrapping over clipping; never sit under/over the status tags. */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  overflow: visible;
+  min-width: 0;
+  flex: 1 1 12rem;
+  line-height: 1.35;
+  /* Keep a clear gap from the tag cluster when both share a row. */
+  padding-right: 0;
+}
+
+/* Id chip + status badge — stay on the right, wrap as a unit if the row is narrow.
+ * margin-left:auto keeps the cluster right-aligned when it wraps under the title
+ * (mobile): without it, a content-sized flex item starts at the left of the new line. */
+.dash-item-head-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 1 auto;
+  margin-left: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.dash-item-head-tags .badge,
+.dash-item-head-tags .dash-chip {
+  flex-shrink: 0;
+}
+
+/* Must beat .dash-chip { text-transform: uppercase } (same specificity, later in file). */
+.dash-chip.dash-chip-id,
+.dash-chip-id {
+  /* Preserve base64url case to match audit log and URL ids. */
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  max-width: 100%;
+  /* Ellipsis on inner text so overflow:hidden does not clip the CSS tooltip. */
+  white-space: nowrap;
+}
+
+.dash-chip-id-text {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+}
+
+/*
+ * Custom dash-chip tooltips (~500ms show delay ≈ half the ~1s native title delay).
+ * Use data-tooltip instead of title so the browser does not show a second tip later.
+ */
+.dash-chip[data-tooltip] {
+  position: relative;
+  cursor: default;
+}
+
+.dash-chip[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%) translateY(2px);
+  z-index: 40;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--surface-elevated, #252525);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.22));
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  white-space: normal;
+  width: max-content;
+  max-width: min(220px, 70vw);
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: var(--shadow-1);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  /* Hide immediately when leaving hover */
+  transition:
+    opacity 0.1s ease,
+    transform 0.1s ease,
+    visibility 0s linear 0.1s;
+}
+
+.dash-chip[data-tooltip]:hover::after,
+.dash-chip[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  /* Show after ~500ms (half typical native title delay) */
+  transition:
+    opacity 0.1s ease 0.5s,
+    transform 0.1s ease 0.5s,
+    visibility 0s linear 0.5s;
+}
+
+.dash-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dash-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ID chip: never uppercase (after .dash-chip so this wins). */
+.dash-chip.dash-chip-id {
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.dash-meta-expires {
+  color: var(--muted);
+  word-break: break-word;
+}
+
+/* Mobile: expires always on its own row under the meta chips (not beside them). */
+@media (max-width: 640px) {
+  .dash-item-meta .dash-meta-expires {
+    flex: 0 0 100%;
+  }
+}
+
+.dash-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--divider);
+}
+
+.dash-item-actions button,
+.dash-item-actions .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px; /* comfortable touch target on iOS */
+  max-height: 44px;
+  font-size: 12px;
+  position: relative;
+  z-index: 1;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Same outer size as other item-action buttons (44px) */
+.dash-item-actions button.secondary,
+.dash-item-actions .btn.secondary {
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+}
+
+.dash-item-clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(var(--accent-rgb), 0.12);
+}
+
+.actions-dash {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Intrinsic width; height from global button rules (all 36px). */
+.actions-dash .btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  text-align: center;
+}
+
+/* —— Status badges (match alert banner colors; not tied to SENDIT_HIGHLIGHT) —— */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted-strong);
+  border: 1px solid transparent;
+  /* Keep status colors independent of theme overrides */
+  animation: none !important;
+  background-image: none !important;
+  filter: none !important;
+}
+/* Same green as .alert.ok */
+.badge.active,
+.badge.ready {
+  background: var(--ok-soft);
+  border-color: rgba(102, 187, 106, 0.28);
+  color: var(--ok-text);
+}
+/* Vibrant blue, same border treatment as banners */
+.badge.pending {
+  background: rgba(33, 150, 243, 0.18);
+  border-color: rgba(33, 150, 243, 0.4);
+  color: #64b5f6;
+}
+/* Same red as .alert.error */
+.badge.consumed,
+.badge.expired {
+  background: var(--danger-soft);
+  border-color: rgba(239, 83, 80, 0.28);
+  color: var(--danger-text);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/*
+ * Password-manager assist fields (Bitwarden, etc.): keep in the accessibility/layout
+ * tree but off-screen. display:none / type=hidden is often ignored by autofill.
+ */
+.pm-assist-field {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Side-by-side primary / secondary / danger — identical 36px height */
+.actions,
+.secret-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.actions > button,
+.actions > .btn,
+.actions > a.btn,
+.secret-actions > button,
+.secret-actions > .btn,
+.secret-actions > a.btn {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+/* Shared blurb above Reveal on send + collect open pages */
+#confirm-box .confirm-decrypt-note {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* —— Secret output —— */
+.secret-out-wrap {
+  position: relative;
+  margin-top: 16px;
+}
+
+.secret-out-tools {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.secret-out {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  padding-right: 84px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--mono);
+  font-size: 13px;
+  min-height: 2.5rem;
+  color: var(--text);
+}
+
+.secret-out.secret-out-hidden {
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.secret-tool-btn,
+.secret-copy-btn,
+.secret-reveal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  min-height: 32px;
+  margin: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent !important;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  box-shadow: none !important;
+  transform: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Override global button:hover / button:active (those use solid gold). */
+.secret-tool-btn:hover,
+.secret-copy-btn:hover,
+.secret-reveal-btn:hover,
+.secret-tool-btn:active,
+.secret-copy-btn:active,
+.secret-reveal-btn:active,
+.secret-tool-btn:focus,
+.secret-copy-btn:focus,
+.secret-reveal-btn:focus {
+  background: transparent !important;
+  color: var(--muted);
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Desktop only: subtle hover tint (not applied on touch / sticky-hover). */
+@media (hover: hover) and (pointer: fine) {
+  .secret-tool-btn:hover,
+  .secret-copy-btn:hover,
+  .secret-reveal-btn:hover {
+    color: var(--primary);
+    background: var(--primary-soft) !important;
+  }
+}
+
+/* Touch only: light press feedback on icon tools */
+@media (hover: none), (pointer: coarse) {
+  .secret-tool-btn.is-pressed,
+  .secret-copy-btn.is-pressed,
+  .secret-reveal-btn.is-pressed {
+    color: var(--primary) !important;
+    background: var(--primary-soft) !important;
+    box-shadow: none !important;
+    transform: scale(0.92) !important;
+  }
+}
+
+.secret-copy-btn.copied,
+.secret-copy-btn.copied:hover,
+.secret-copy-btn.copied:active,
+.secret-copy-btn.copied:focus {
+  color: var(--ok);
+  background: transparent !important;
+}
+
+.secret-tool-btn:focus-visible,
+.secret-copy-btn:focus-visible,
+.secret-reveal-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+label.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+label.checkbox-row input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+/* Match spacing after other field-hints before the next label */
+#hide-text-wrap .field-hint {
+  margin-bottom: 18px;
+}
+
+/* Same control → hint gap for max-access and private note (and similar pairs) */
+form input[type="number"]:has(+ .field-hint),
+form input[type="text"]:has(+ .field-hint),
+form input[type="email"]:has(+ .field-hint),
+form input[type="password"]:has(+ .field-hint),
+form textarea:has(+ .field-hint) {
+  margin-bottom: 8px;
+}
+
+/*
+ * Link password: #link-password-confirm-wrap sits between the input and .field-hint,
+ * so :has(+ .field-hint) never matches. When the confirm block is hidden, shrink the
+ * password field's bottom margin so "If set,…" matches the Title → "Shown to…" gap.
+ * When confirm is shown, the confirm input itself uses the 8px control→hint gap.
+ */
+form #link-password:has(+ #link-password-confirm-wrap.hidden) {
+  margin-bottom: 8px;
+}
+
+form #link-password-confirm-wrap input {
+  margin-bottom: 8px;
+}
+
+form input + .field-hint,
+form textarea + .field-hint,
+form #link-password-confirm-wrap + .field-hint {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+#max-access-wrap .field-hint {
+  margin-bottom: 18px;
+}
+
+/* Last field block before submit — same gap as collect link-password hint → button.
+   Margin on the wrap (not only the hint) so it is not collapsed away before the submit button. */
+#allowed-cidr-wrap,
+#change-password-totp-wrap {
+  margin-bottom: 18px;
+}
+#allowed-cidr-wrap .field-hint,
+#change-password-totp-wrap .field-hint {
+  margin-bottom: 0;
+}
+
+.dash-private-note {
+  /* Match gap above (from .dash-item-meta margin-bottom) with gap below to the actions divider */
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted-strong);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dash-private-note-label {
+  font-weight: 700;
+  color: var(--heading, #ffffff);
+}
+
+.dash-private-note-error {
+  color: var(--warn-text);
+}
+
+.dash-private-note-error .dash-private-note-label {
+  color: var(--heading, #ffffff);
+}
+
+.dash-load-status {
+  padding: 0.85rem 0.5rem 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.dash-chip-access {
+  border-color: rgba(33, 150, 243, 0.35);
+  color: #90caf9;
+}
+
+.dash-chip-password {
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  color: var(--primary-light, #dfc45a);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+/* Orange: send Allowed IPs set, or collect retrieve IP env allow-list active */
+.dash-chip-ip {
+  border: 1px solid rgba(255, 167, 38, 0.45);
+  color: var(--warn-text, #ffcc80);
+  background: var(--warn-soft, rgba(255, 167, 38, 0.14));
+}
+
+.secret-label {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  /* Optional send/collect title on meta cards */
+  color: var(--primary);
+}
+
+.secret-label strong {
+  color: inherit;
+  font-weight: 700;
+}
+
+.secret-label-hint {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.secret-actions {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
+}
+
+#meta .secret-out-wrap {
+  margin-top: 16px;
+}
+
+/* —— Radios / fieldset —— */
+fieldset.content-type {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px 8px;
+  margin: 0 0 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+fieldset.content-type legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+label.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 20px;
+  margin-bottom: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+label.radio input {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  accent-color: var(--primary);
+}
+
+label.radio input:hover,
+label.radio input:focus,
+label.radio input:focus-visible {
+  outline: none;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  filter: none;
+  animation: none;
+}
+
+/* —— File picker —— */
+.file-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.file-input-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+label.file-picker-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  color: #000000;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: var(--primary);
+  /* Same 1px box as button/.btn so height matches neighbours */
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0 16px;
+  min-height: 36px;
+  height: 36px;
+  line-height: 1;
+  box-shadow: var(--shadow-1);
+  transition: background var(--transition), box-shadow var(--transition);
+}
+
+.file-picker-name {
+  color: var(--muted);
+  font-size: 13px;
+  word-break: break-all;
+}
+
+/* Advisory under fields — dimmer than labels so headers stay more prominent */
+.field-hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--hint);
+  line-height: 1.4;
+}
+
+/*
+ * Settings account summary — same pattern as #meta on send/collect reveal:
+ *   <p><strong>Expires:</strong> …</p>
+ * strong uses the global rule (heading colour, weight 500).
+ */
+.settings-account-card p {
+  margin: 0 0 0.65em;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.settings-account-card p:last-child {
+  margin-bottom: 0;
+}
+
+/* Signed-in email uses brand highlight (SENDIT_HIGHLIGHT / --accent). */
+.settings-email,
+#email-display {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Audit log */
+.audit-resource-link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+.audit-resource-link:hover {
+  color: var(--accent-hover);
+}
+
+/* Dashboard deep-link from audit (?focus=id) */
+.dash-item-focus {
+  box-shadow: 0 0 0 2px var(--primary), var(--shadow-2);
+  transition: box-shadow 0.2s ease;
+}
+
+.audit-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.audit-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Loading / empty sit in the outer card — do not nest a second .dash-empty panel */
+.audit-card .dash-empty {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  margin: 0;
+}
+
+.audit-head,
+.audit-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 11.5rem) 1fr minmax(7rem, 12rem);
+  gap: 0.75rem 1rem;
+  padding: 0.75rem 1.1rem;
+  align-items: start;
+}
+
+.audit-head {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.audit-row {
+  border-bottom: 1px solid var(--border);
+  font-size: 0.92rem;
+}
+
+.audit-row:last-child {
+  border-bottom: none;
+}
+
+.audit-when {
+  color: var(--muted-strong);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.audit-message {
+  color: var(--text);
+  word-break: break-word;
+}
+
+.audit-load-status {
+  padding: 0.85rem 1.1rem 1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.audit-ip {
+  color: var(--muted);
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+@media (max-width: 720px) {
+  .audit-head {
+    display: none;
+  }
+
+  .audit-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+    padding: 0.9rem 1rem;
+  }
+
+  .audit-when {
+    font-size: 0.8rem;
+  }
+}
+
+/* Settings: 2FA status matches success/error banner text colours */
+#totp-status.totp-status-on {
+  color: var(--ok-text);
+}
+
+#totp-status.totp-status-off {
+  color: var(--danger-text);
+}
+
+/* Space between "Begin enrollment" and the QR block once shown */
+#totp-begin {
+  margin-bottom: 0;
+}
+
+#totp-enroll {
+  margin-top: 1.5rem;
+}
+
+#totp-qr-host {
+  margin-top: 0.25rem;
+}
+
+#totp-qr-host img,
+#totp-qr-host canvas,
+#totp-qr-host table {
+  background: #fff;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+  margin: 0;
+}
+
+.card .actions {
+  margin-bottom: 0;
+}
+
+strong {
+  color: var(--heading);
+  font-weight: 500;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--divider);
+  margin: 20px 0;
+}
+
+.wrap > h1:first-of-type {
+  margin-top: 4px;
+}
+
+/* ============================================================
+   Auth — centered card (no split layout)
+   ============================================================ */
+body.auth-page {
+  min-height: 100vh;
+  background: var(--bg);
+  background-image: radial-gradient(
+    ellipse 80% 60% at 50% -10%,
+    rgba(var(--accent-rgb), 0.12) 0%,
+    transparent 55%
+  );
+}
+
+.auth-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 32px 16px;
+}
+
+.auth-panel {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-card {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  padding: 36px 32px 28px;
+}
+
+.auth-brand-center {
+  text-align: center;
+  /* Extra space under logo before alert / form fields */
+  margin: 0 0 28px;
+  line-height: 0;
+}
+
+.auth-brand-center .brand-logo,
+.brand-logo-auth {
+  display: inline-block;
+  height: 48px;
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+.auth-card-title {
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0 0 8px;
+  padding: 0;
+  border: none;
+  color: var(--heading);
+  text-align: center;
+  text-transform: none;
+}
+
+.auth-card-lead {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.auth-footer-link {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* Compact OTP / TOTP code fields — same size for email OTP (6) and authenticator (8) */
+.otp-code-input,
+input.otp-code-input {
+  display: block;
+  box-sizing: border-box;
+  width: 14rem;
+  max-width: 100%;
+  letter-spacing: 0.2em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Settings TOTP: sit under the code field at intrinsic width (match Begin enrollment). */
+#totp-confirm-form button,
+#totp-disable-form button {
+  display: inline-flex;
+  width: auto;
+  margin-top: 0.25rem;
+}
+
+.auth-footer-link a {
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  :root {
+    /* Keep scroll-padding / scroll-margin in sync with the shorter mobile bar */
+    --header-h: 56px;
+  }
+
+  header.app {
+    height: auto;
+    min-height: var(--header-h);
+    flex-wrap: nowrap;
+    padding: 8px 12px;
+    gap: 8px;
+    /* Containing block for the dropdown menu (position:absolute; top:100%) */
+    overflow: visible;
+    /* Real border is drawn via ::after above the open menu (see below). */
+    border-bottom-color: transparent;
+  }
+
+  /* Keep the nav bar’s lower rule fully visible above the expanded menu. */
+  header.app::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: var(--divider);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  header.app .brand {
+    flex-shrink: 0;
+  }
+
+  header.app .brand .brand-logo {
+    height: 30px;
+    max-width: 140px;
+  }
+
+  .wrap {
+    padding-top: calc(56px + 20px);
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-bottom: 32px;
+  }
+
+  /* —— Mobile hamburger menu —— */
+  .nav-menu-toggle,
+  button.nav-menu-toggle {
+    display: inline-flex;
+    margin-left: auto;
+    order: 2;
+    /* Re-assert square (global button max-height:36px must not win) */
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+    padding: 0 !important;
+  }
+
+  /*
+   * Full-width menu panel, anchored under header.app (including its bottom
+   * border) — not a fixed 56px guess, which sat above the real separator.
+   * Labels + email right-justified; full-width email rule + Log out.
+   */
+  nav.links {
+    display: none;
+    position: absolute;
+    /* Under the header padding box + 1px so the panel sits just below the bar border. */
+    top: calc(100% + 1px);
+    left: 0;
+    right: 0;
+    bottom: auto;
+    z-index: 1;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    /* Extra 5px between items (was 4px) for easier taps.
+       Top padding matches gap so DASHBOARD↔menu top = DASHBOARD↔SETTINGS. */
+    gap: 9px;
+    width: auto;
+    max-width: none;
+    padding: 9px 12px 16px;
+    margin: 0;
+    background: var(--header-bg);
+    /* Open from the nav bar border — no second top rule */
+    border-top: none;
+    border-bottom: 1px solid var(--divider);
+    box-shadow: var(--shadow-2);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: min(70vh, calc(100dvh - 4.5rem));
+    box-sizing: border-box;
+  }
+
+  body.nav-menu-open nav.links {
+    display: flex;
+  }
+
+  body.nav-menu-open {
+    overflow: hidden;
+  }
+
+  .nav-menu-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1015;
+    background: rgba(0, 0, 0, 0.55);
+    border: 0;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  body.nav-menu-open .nav-menu-backdrop {
+    display: block;
+  }
+
+  nav.links > a {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-align: right;
+    border-radius: var(--radius);
+    white-space: nowrap;
+  }
+
+  /* Settings: text label, not tiny gear */
+  nav.links > a.nav-settings-link {
+    padding: 12px 14px;
+    gap: 0;
+  }
+
+  nav.links > a.nav-settings-link .nav-icon {
+    display: none;
+  }
+
+  nav.links > a.nav-settings-link .nav-settings-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: nowrap;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    text-transform: uppercase; /* match DASHBOARD */
+  }
+
+  /* Full-width rule above email; address right-justified (highlight color).
+     padding-top = padding-bottom + gap so space under the separator matches
+     space from the address down to Log out. */
+  nav.links [data-nav-email] {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 19px 14px 10px;
+    border-left: none;
+    border-top: 1px solid var(--divider);
+    max-width: none;
+    font-size: 13px;
+    color: var(--primary);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Full-width Log out control (spacing via nav gap only) */
+  button.nav-logout,
+  .nav-logout {
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    min-height: 48px !important;
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  p.lead {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  /* Dashboard New send / New collect stay side-by-side; height from global buttons */
+  .actions-dash {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .actions-dash .btn {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .dash-item-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dash-item-actions button,
+  .dash-item-actions .btn {
+    width: 100%;
+    flex: 1 1 100%;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+  }
+
+  .dash-item-actions button.secondary,
+  .dash-item-actions .btn.secondary {
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+  }
+
+  .auth-card {
+    padding: 28px 20px 22px;
+  }
+
+  /* Shorter, tighter highlight glow on small screens */
+  body.auth-page {
+    background-image: radial-gradient(
+      ellipse 90% 28% at 50% -8%,
+      rgba(var(--accent-rgb), 0.12) 0%,
+      transparent 70%
+    );
+  }
+}
+
+@media (max-width: 380px) {
+  body.auth-page {
+    background-image: radial-gradient(
+      ellipse 95% 22% at 50% -6%,
+      rgba(var(--accent-rgb), 0.1) 0%,
+      transparent 72%
+    );
+  }
+
+  header.app .brand .brand-logo {
+    height: 26px;
+    max-width: 120px;
+  }
+
+  nav.links > a {
+    padding: 6px 6px;
+  }
+}
+
+/* —— Upload / encrypt progress modal —— */
+.progress-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+body.progress-modal-open {
+  overflow: hidden;
+}
+
+.progress-modal-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3);
+  padding: 24px 22px 20px;
+}
+
+.progress-modal-title {
+  margin: 0 0 8px;
+  padding: 0;
+  border: none;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--heading);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.progress-modal-status {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.progress-bar-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--primary-dark, #a8902c),
+    var(--primary, #c8ab37),
+    var(--primary-light, #dfc45a)
+  );
+  transition: width 0.15s ease-out;
+}
+
+.progress-bar-fill.progress-bar-indeterminate {
+  width: 40% !important;
+  animation: progress-indeterminate 1.1s ease-in-out infinite;
+}
+
+.progress-modal-pct {
+  margin: 10px 0 0;
+  min-height: 1.2em;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  text-align: right;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar-fill {
+    transition: none;
+  }
+  .progress-bar-fill.progress-bar-indeterminate {
+    animation: none;
+    width: 100% !important;
+    opacity: 0.7;
+  }
+}
+
+/* —— Password unlock modal (replaces window.prompt; masks input) —— */
+.pw-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.pw-modal-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3);
+  padding: 24px 22px 20px;
+}
+
+.pw-modal-title {
+  margin: 0 0 8px;
+  padding: 0;
+  border: none;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--heading);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pw-modal-msg {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.pw-modal-form label {
+  margin-bottom: 6px;
+}
+
+.pw-modal-form input[type="password"] {
+  margin-bottom: 16px;
+}
+
+.pw-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Cancel + OK — same 36px height from global button rules */
+.pw-modal-actions .btn,
+.pw-modal-actions button {
+  min-width: 5.5rem;
+  flex: 0 0 auto;
+}
+
+/* Settings footer — app build id, bottom-right of the content column */
+.app-version {
+  margin: 2.5rem 0 0;
+  padding: 0;
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  user-select: text;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+
+  button:active,
+  .btn:active,
+  button.is-pressed,
+  .btn.is-pressed {
+    transform: none !important;
+  }
+}

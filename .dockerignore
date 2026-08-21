@@ -1,0 +1,37 @@
+# Build context for deploy/Dockerfile
+# Keep only what the image needs; never ship host bin/obj into restore/publish.
+
+.git
+.github
+.vs
+.vscode
+.idea
+**/.DS_Store
+
+# Host build outputs — overwriting these after `dotnet restore` breaks multi-RID publish
+**/bin/
+**/obj/
+**/out/
+
+# Local/dev artifacts
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/.sendit-ticket-key
+.certs
+*.user
+*.suo
+*.swp
+
+# Frontend is built inside Dockerfile.full; lite does not embed UI
+public/
+node_modules/
+
+# Docs / tests not needed in the image
+docs/
+tests/
+*.md
+!src/frontend/vendor/VENDOR.md
+
+# Nested docker / deploy helpers (Dockerfiles are referenced by path outside context content)
+deploy/**/*.md

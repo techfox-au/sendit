@@ -1,0 +1,14 @@
+{
+  "name": "sendit-check-ip-worker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cloudflare Worker canary: call Sendit! /api/v1/diagnostics/client-ip from the public edge",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.99.0"
+  }
+}

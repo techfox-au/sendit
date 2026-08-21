@@ -1,0 +1,151 @@
+## Sendit / .NET — keep secrets, build output, and local runtime data out of git.
+## Base patterns from https://github.com/github/gitignore/blob/main/Dotnet.gitignore
+
+# ----- Secrets & environment -----
+# dotenv / local env (all common variants)
+.env
+.env.*
+!.env.example
+*.env
+*.env.local
+*.env.*.local
+
+# Local secrets / keys (never commit)
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# ----- Build results -----
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+publish/
+[Pp]ublish/
+artifacts/
+*.Appx
+*.appxbundle
+*.msix
+*.msixbundle
+
+# Compiled / native binaries (anywhere)
+*.exe
+*.dll
+*.pdb
+*.so
+*.dylib
+*.a
+*.o
+*.lib
+*.exp
+*.ilk
+*.obj
+*.cache
+
+# .NET publish / self-contained leftovers
+*.deps.json
+*.runtimeconfig.json
+*.runtimeconfig.dev.json
+
+# .NET Core lock / project intermediates
+project.lock.json
+project.fragment.lock.json
+*.nuget.props
+*.nuget.targets
+
+# NuGet packages
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+
+# MSBuild / test logs
+*.binlog
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+TestResults/
+[Cc]overage*/
+*.coverage
+*.coveragexml
+CodeCoverage/
+
+# NUnit / MSTest
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# ----- IDE / editor -----
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.swp
+*~
+~$*
+
+# ----- OS junk -----
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# ----- Sendit runtime / local data -----
+# SQLite / local data dir at repo root only (not src/Sendit.Api/Data/ — case-insensitive
+# filesystems match "data/" against "Data/" and would drop the C# Data layer from git).
+/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Durable ticket / HMAC key file (next to DB or project)
+.sendit-ticket-key
+**/.sendit-ticket-key
+
+# Local TLS certs (e.g. scripts/run-lan-https.sh)
+.certs/
+*.crt
+*.csr
+*.cer
+
+# Optional local log files
+*.log
+logs/
+
+# Node (if tooling is added later)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Python bytecode (build-frontend.py / helpers)
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/

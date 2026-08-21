@@ -1,0 +1,15 @@
+# Cloudflare Worker: Sendit! client-IP canary
+# Docs: README.md in this directory
+#
+# Deploy:
+#   npx wrangler login
+#   npx wrangler secret put PROBE_SECRET    # same as SENDIT_IP_PROBE_SECRET
+#   npx wrangler secret put CALLER_SECRET  # optional; gates who can invoke the Worker
+#   npx wrangler deploy
+
+name = "sendit-check-ip"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Free tier is enough (low volume canary).
+# workers_dev = true  # default *.workers.dev URL

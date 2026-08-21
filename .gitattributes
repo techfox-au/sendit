@@ -1,0 +1,5 @@
+# Built public assets must stay LF so SRI hashes match across Windows/Linux.
+public/** text eol=lf
+*.min.css text eol=lf
+*.min.js text eol=lf
+*.min.html text eol=lf

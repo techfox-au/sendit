@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark only" />
+    <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#121212" />
+    <title>Settings · Sendit!</title>
+        <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/api/v1/branding/theme.css" />
+</head>
+  <body data-page="settings">
+    <div class="wrap">
+      <header class="app">
+        <a class="brand" href="/dashboard"><img class="brand-logo" src="/api/v1/branding/logo.svg" alt="Sendit!" /></a>
+        <button
+          type="button"
+          class="nav-menu-toggle"
+          data-nav-menu-toggle
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="app-nav"
+        >
+          <span class="nav-menu-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+        <nav class="links" id="app-nav">
+          <a href="/dashboard">Dashboard</a>
+          <a href="/audit">Audit</a>
+          <a href="/settings" class="nav-settings-link" aria-label="Settings" title="Settings"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="nav-icon bi-gear" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/></svg><span class="nav-settings-label">Settings</span></a>
+          <span data-nav-email></span>
+          <button type="button" class="secondary nav-logout" data-logout>Log out</button>
+        </nav>
+      </header>
+      <h1>Settings</h1>
+      <div id="alert" class="alert hidden"></div>
+      <!-- Same meta-card pattern as send/collect reveal: <p><strong>Key:</strong> value</p>
+           Trailing space lives inside <strong> so HTML minify cannot strip it. -->
+      <div class="card settings-account-card">
+        <p><strong>Signed in as: </strong><span id="email-display" class="settings-email"></span></p>
+        <p><strong>Two-factor authentication: </strong><span id="totp-status"></span></p>
+      </div>
+      <div class="card" id="notifications-section">
+        <h2>Notifications</h2>
+        <label class="checkbox-row" for="notify-collect-ready">
+          <input type="checkbox" id="notify-collect-ready" />
+          Email me when a collect is ready to retrieve
+        </label>
+        <p class="field-hint">
+          Sent when someone submits to one of your collect links.
+        </p>
+        <label class="checkbox-row" for="notify-send-opened">
+          <input type="checkbox" id="notify-send-opened" />
+          Email me when a send is opened for decryption
+        </label>
+        <p class="field-hint">
+          Sent when a recipient downloads the encrypted payload in their browser.
+        </p>
+      </div>
+      <div class="card">
+        <h2>Change password</h2>
+        <div class="alert warn">
+          Changing your password creates a <strong>new</strong> per-user encryption key and
+          <strong>permanently deletes</strong> all of your existing sends and collects.
+          Data encrypted under the old key cannot be recovered.
+        </div>
+        <form id="change-password-form" method="post" action="/settings" autocomplete="on">
+          <!-- Bitwarden: associate password change with this account -->
+          <input
+            type="email"
+            id="change-password-username"
+            name="username"
+            autocomplete="username"
+            class="pm-assist-field"
+            tabindex="-1"
+            aria-hidden="true"
+            readonly
+          />
+          <label for="current-password">Current password <span class="req" aria-hidden="true">*</span></label>
+          <input
+            id="current-password"
+            name="password"
+            type="password"
+            required
+            minlength="8"
+            maxlength="256"
+            autocomplete="current-password"
+          />
+          <label for="new-password">New password <span class="req" aria-hidden="true">*</span></label>
+          <input
+            id="new-password"
+            name="new-password"
+            type="password"
+            required
+            minlength="8"
+            maxlength="256"
+            autocomplete="new-password"
+          />
+          <div id="change-password-totp-wrap" class="hidden">
+            <label for="change-password-totp">Authenticator code <span class="req" aria-hidden="true">*</span></label>
+            <input
+              id="change-password-totp"
+              name="totp"
+              type="text"
+              class="otp-code-input"
+              inputmode="numeric"
+              pattern="[0-9]{8}"
+              minlength="8"
+              maxlength="8"
+              autocomplete="one-time-code"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+            />
+          </div>
+          <button type="submit" class="danger">Update password (deletes my data)</button>
+        </form>
+      </div>
+      <div class="card hidden" id="totp-enable-section">
+        <h2>Enable TOTP</h2>
+        <p>Scan a QR code with your authenticator app, then enter a code to activate.</p>
+        <button type="button" id="totp-begin">Begin enrollment</button>
+        <div id="totp-enroll" class="hidden">
+          <!-- id must not be "qrcode": browsers expose ids as window.qrcode and clobber the library. -->
+          <div id="totp-qr-host" aria-hidden="true"></div>
+          <p class="mono" id="otpauth-uri"></p>
+          <form id="totp-confirm-form" method="post" action="/settings" autocomplete="on">
+            <input
+              type="email"
+              id="totp-confirm-username"
+              name="username"
+              autocomplete="username"
+              class="pm-assist-field"
+              tabindex="-1"
+              aria-hidden="true"
+              readonly
+            />
+            <label for="totp-confirm-code">Confirmation code (8 digits) <span class="req" aria-hidden="true">*</span></label>
+            <input
+              id="totp-confirm-code"
+              name="totp"
+              type="text"
+              class="otp-code-input"
+              inputmode="numeric"
+              pattern="[0-9]{8}"
+              minlength="8"
+              maxlength="8"
+              autocomplete="one-time-code"
+              required
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+            />
+            <button type="submit">Activate TOTP</button>
+          </form>
+        </div>
+      </div>
+      <div class="card hidden" id="totp-disable-section">
+        <h2>Disable TOTP</h2>
+        <form id="totp-disable-form" method="post" action="/settings" autocomplete="on">
+          <input
+            type="email"
+            id="totp-disable-username"
+            name="username"
+            autocomplete="username"
+            class="pm-assist-field"
+            tabindex="-1"
+            aria-hidden="true"
+            readonly
+          />
+          <label for="disable-password">Password <span class="req" aria-hidden="true">*</span></label>
+          <input
+            id="disable-password"
+            name="password"
+            type="password"
+            required
+            minlength="8"
+            maxlength="256"
+            autocomplete="current-password"
+          />
+          <label for="disable-code">Authenticator code <span class="req" aria-hidden="true">*</span></label>
+          <input
+            id="disable-code"
+            name="totp"
+            type="text"
+            class="otp-code-input"
+            inputmode="numeric"
+            pattern="[0-9]{8}"
+            minlength="8"
+            maxlength="8"
+            autocomplete="one-time-code"
+            required
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+          />
+          <button type="submit" class="danger">Disable TOTP</button>
+        </form>
+      </div>
+      <p class="app-version" id="app-version" aria-label="App version"></p>
+    </div>
+    <script src="/vendor/qrcode.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/user-data-key.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/auth-pages.js"></script>
+  </body>
+</html>

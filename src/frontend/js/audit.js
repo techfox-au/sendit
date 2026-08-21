@@ -1,0 +1,301 @@
+/**
+ * Audit page: immutable site-wide activity log (all accounts).
+ * Server stores UTC; display uses the browser's local timezone.
+ * Infinite scroll: loads 500 at a time; near the bottom of the list, fetches older pages.
+ */
+(async function () {
+  const { $, setAlert, requireAuth, paintNav } = SenditApp;
+  const alertEl = $("#alert");
+  const listEl = $("#audit-list");
+
+  const user = await requireAuth();
+  if (!user) return;
+  paintNav(user);
+
+  const PAGE_SIZE = 500;
+  /** px from bottom of document before we request the next page */
+  const LOAD_MORE_THRESHOLD_PX = 480;
+  /** Send/collect ids in messages: "(id …)" — base64url 128-bit (~22 chars). */
+  const ID_IN_PARENS_RE = /\(id ([A-Za-z0-9_-]{16,32})\)/gi;
+
+  let hasMore = false;
+  let loading = false;
+  /** @type {{ atUtc: string, id: string }|null} cursor = last row of last page */
+  let cursor = null;
+  let headerReady = false;
+  /**
+   * Send/collect ids currently on this user's dashboard (not deleted / not others').
+   * Only these become links in audit messages.
+   * @type {Object<string, boolean>}
+   */
+  let ownedResourceIds = Object.create(null);
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  /** Format ISO UTC to browser-local date/time. */
+  function formatLocal(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return escapeHtml(iso);
+    try {
+      return d.toLocaleString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } catch {
+      return d.toString();
+    }
+  }
+
+  /**
+   * Load every id still listed on /me/items for this account (paginated).
+   * Fail-closed: empty set → no resource links.
+   */
+  async function loadOwnedResourceIds() {
+    const map = Object.create(null);
+    try {
+      let hasMoreItems = true;
+      let beforeCreatedAt = null;
+      let beforeId = null;
+      let pages = 0;
+      while (hasMoreItems && pages < 50) {
+        pages += 1;
+        /** @type {{ limit: number, beforeCreatedAt?: string, beforeId?: string }} */
+        const opts = { limit: 200 };
+        if (beforeCreatedAt && beforeId) {
+          opts.beforeCreatedAt = beforeCreatedAt;
+          opts.beforeId = beforeId;
+        }
+        const data = await SenditApi.myItems(opts);
+        const items = (data && data.items) || [];
+        for (let i = 0; i < items.length; i++) {
+          if (items[i] && items[i].id) map[String(items[i].id)] = true;
+        }
+        hasMoreItems = !!(data && data.hasMore) && items.length > 0;
+        if (!items.length) break;
+        const last = items[items.length - 1];
+        beforeCreatedAt = last.createdAt || null;
+        beforeId = last.id || null;
+        if (!beforeCreatedAt || !beforeId) break;
+      }
+    } catch {
+      /* leave map empty — do not link unowned/unknown ids */
+    }
+    ownedResourceIds = map;
+  }
+
+  /**
+   * Candidate resource ids: API resourceId plus any "(id …)" tokens in the message.
+   * @param {string} message
+   * @param {string|null|undefined} resourceId
+   * @returns {string[]}
+   */
+  function collectResourceIds(message, resourceId) {
+    const ids = [];
+    const seen = Object.create(null);
+    function add(id) {
+      if (!id || seen[id]) return;
+      seen[id] = true;
+      ids.push(id);
+    }
+    if (resourceId) add(String(resourceId));
+    const text = String(message || "");
+    ID_IN_PARENS_RE.lastIndex = 0;
+    let m;
+    while ((m = ID_IN_PARENS_RE.exec(text)) !== null) add(m[1]);
+    return ids;
+  }
+
+  /**
+   * Escape message HTML; wrap only ids still on this user's dashboard as links.
+   * @param {string} message
+   * @param {string|null|undefined} resourceId
+   */
+  function linkifyMessage(message, resourceId) {
+    const text = String(message || "—");
+    const ids = collectResourceIds(text, resourceId).filter(function (id) {
+      return !!ownedResourceIds[id];
+    });
+    if (!ids.length) return escapeHtml(text);
+
+    // Longest-first so overlapping fragments never partially match.
+    ids.sort(function (a, b) {
+      return b.length - a.length;
+    });
+    /** @type {Record<string, string>} */
+    const placeholders = Object.create(null);
+    let work = text;
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      const ph = "\uE000ID" + i + "\uE001"; // private-use placeholders
+      placeholders[ph] = id;
+      work = work.split(id).join(ph);
+    }
+    let html = escapeHtml(work);
+    for (const ph of Object.keys(placeholders)) {
+      const id = placeholders[ph];
+      const link =
+        '<a class="audit-resource-link mono" href="/dashboard?focus=' +
+        encodeURIComponent(id) +
+        '" title="Open on dashboard">' +
+        escapeHtml(id) +
+        "</a>";
+      html = html.split(escapeHtml(ph)).join(link);
+    }
+    return html;
+  }
+
+  function rowHtml(item) {
+    const when = formatLocal(item.atUtc);
+    const msg = linkifyMessage(item.message || item.kind || "—", item.resourceId);
+    const ip = item.clientIp ? escapeHtml(item.clientIp) : "—";
+    const kind = escapeHtml(item.kind || "");
+    const rid = item.resourceId ? escapeHtml(String(item.resourceId)) : "";
+    return (
+      '<div class="audit-row" data-kind="' +
+      kind +
+      '"' +
+      (rid ? ' data-resource-id="' + rid + '"' : "") +
+      ">" +
+      '<div class="audit-when">' +
+      escapeHtml(when) +
+      "</div>" +
+      '<div class="audit-message">' +
+      msg +
+      "</div>" +
+      '<div class="audit-ip mono" title="Client IP">' +
+      ip +
+      "</div>" +
+      "</div>"
+    );
+  }
+
+  function ensureHeader() {
+    if (headerReady) return;
+    listEl.innerHTML =
+      '<div class="audit-head" aria-hidden="true">' +
+      '<div class="audit-when">When (local)</div>' +
+      '<div class="audit-message">Action</div>' +
+      '<div class="audit-ip">IP</div>' +
+      "</div>" +
+      '<div class="audit-rows" id="audit-rows"></div>' +
+      '<div class="audit-load-status" id="audit-load-status" hidden></div>';
+    headerReady = true;
+  }
+
+  function rowsHost() {
+    return document.getElementById("audit-rows") || listEl;
+  }
+
+  function setLoadStatus(text, visible) {
+    const el = document.getElementById("audit-load-status");
+    if (!el) return;
+    if (!visible || !text) {
+      el.hidden = true;
+      el.textContent = "";
+      return;
+    }
+    el.hidden = false;
+    el.textContent = text;
+  }
+
+  function updateCursorFromItems(items) {
+    if (!items || !items.length) {
+      cursor = null;
+      return;
+    }
+    const last = items[items.length - 1];
+    cursor =
+      last && last.atUtc && last.id
+        ? { atUtc: last.atUtc, id: last.id }
+        : null;
+  }
+
+  async function loadPage(isFirst) {
+    if (loading) return;
+    if (!isFirst && !hasMore) return;
+    loading = true;
+    if (!isFirst) setLoadStatus("Loading older events…", true);
+
+    try {
+      const opts = { limit: PAGE_SIZE };
+      if (!isFirst && cursor) {
+        opts.beforeAtUtc = cursor.atUtc;
+        opts.beforeId = cursor.id;
+      }
+      const data = await SenditApi.myAudit(opts);
+      const items = (data && data.items) || [];
+      hasMore = !!(data && data.hasMore);
+
+      if (isFirst) {
+        if (!items.length) {
+          listEl.innerHTML =
+            '<div class="dash-empty">No audit events yet. Creates, deletes, views, decrypts, and collects will appear here.</div>';
+          headerReady = false;
+          cursor = null;
+          hasMore = false;
+          return;
+        }
+        ensureHeader();
+        rowsHost().innerHTML = items.map(rowHtml).join("");
+      } else if (items.length) {
+        rowsHost().insertAdjacentHTML("beforeend", items.map(rowHtml).join(""));
+      }
+
+      if (items.length) updateCursorFromItems(items);
+      setLoadStatus(hasMore ? "" : "End of audit log", !hasMore && !isFirst);
+      if (!hasMore && isFirst) setLoadStatus("", false);
+    } catch (err) {
+      if (isFirst) {
+        listEl.innerHTML = "";
+        headerReady = false;
+        setAlert(alertEl, "error", (err && err.message) || String(err));
+      } else {
+        setLoadStatus(
+          "Could not load more: " + ((err && err.message) || String(err)),
+          true
+        );
+      }
+    } finally {
+      loading = false;
+    }
+  }
+
+  function nearBottom() {
+    const doc = document.documentElement;
+    const scrollBottom =
+      (window.scrollY || doc.scrollTop) +
+      (window.innerHeight || doc.clientHeight);
+    const docHeight = Math.max(doc.scrollHeight, document.body.scrollHeight);
+    return docHeight - scrollBottom <= LOAD_MORE_THRESHOLD_PX;
+  }
+
+  let scrollTick = false;
+  function onScrollOrResize() {
+    if (scrollTick || loading || !hasMore) return;
+    scrollTick = true;
+    requestAnimationFrame(function () {
+      scrollTick = false;
+      if (nearBottom()) loadPage(false);
+    });
+  }
+
+  window.addEventListener("scroll", onScrollOrResize, { passive: true });
+  window.addEventListener("resize", onScrollOrResize, { passive: true });
+
+  // Own dashboard ids first so we only link resources still visible to this user.
+  await loadOwnedResourceIds();
+  await loadPage(true);
+  // Short page (few rows): still try to fill if hasMore and already "near bottom".
+  if (hasMore && nearBottom()) await loadPage(false);
+})();
