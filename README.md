@@ -24,4 +24,4 @@ You control the deployment; Sendit! does not depend on a third-party “vault in
 
 ### Install
 
-Clone the repo 'git clone git@github.com:techfox-au/sendit.git', then 'cd sendit\deploy' and edit the API settings contained within 'docker-compose.yml'. Run the API with 'docker compose up -d' Then you need to configure your webserver (I recommend NGINX) to serve 'sendit\public'.
+Clone the repo `git clone git@github.com:techfox-au/sendit.git`, then `cd sendit\deploy` and edit the API settings contained within `docker-compose.yml`. Run the API with `docker compose up -d` Then you need to configure your webserver (I recommend NGINX) to serve `sendit\public`.
