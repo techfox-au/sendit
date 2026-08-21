@@ -5,7 +5,7 @@
   "use strict";
 
   /** Display / release version (settings footer, diagnostics). */
-  var AppVersion = "v0.1-BETA";
+  var AppVersion = "v1.0";
 
   function $(sel, root) {
     return (root || document).querySelector(sel);

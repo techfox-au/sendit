@@ -604,7 +604,7 @@
       if (verEl) {
         const v =
           (SenditApp && SenditApp.AppVersion) ||
-          (typeof AppVersion !== "undefined" ? AppVersion : "v0.1-BETA");
+          (typeof AppVersion !== "undefined" ? AppVersion : "v1.0");
         verEl.textContent = v;
       }
 
