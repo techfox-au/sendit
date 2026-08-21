@@ -12,7 +12,7 @@ Easily create short-lived links to **send** or **collect** secret text and files
 
 An immutable audit log tracks all actions performed, including the IP addresses interacting with the Sendit! API.
 
-Sendit! comprises of a HTML/JS/CSS front end which can be served by any webserver such as NGINX, Apache etc., and a small .NET 10 Minimal API which runs inside an Alpine docker container and includesan sqlitedb for the back end.
+Sendit! comprises of a HTML/JS/CSS front end which can be served by any webserver such as NGINX, Apache etc., and a small .NET 10 Minimal API which runs inside an Alpine docker container and includes an SQLite DB for the back end.
 
 ### How privacy works
 
